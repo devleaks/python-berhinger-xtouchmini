@@ -193,7 +193,8 @@ class XTouchMini:
         if self.running:
             logger.debug(f"stop: stopping {self.name} (wait can last up to {2 * self.timeout}s)..")
             self.running = False
-            if not self.thread.join(2 * self.timeout):
+            self.thread.join(2 * self.timeout)
+            if self.thread.is_alive():
                 logger.warning(f"stop: did not stop cleanly")
             self.thread = None
 
