@@ -8,10 +8,11 @@ import mido
 from enum import Enum
 
 logger = logging.getLogger("XTouchMini")
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 GLOBAL_CHANNEL = 0
 CHANNEL = 10
+
 
 class LED_MODE(Enum):
     SINGLE = 0
@@ -19,6 +20,7 @@ class LED_MODE(Enum):
     FAN = 2
     SPREAD = 3
 
+# Maps user friendly number 0-15 to MAKIE index number
 MAKIE_MAPPING = {
     0: 89,
     1: 90,
@@ -54,8 +56,27 @@ class XTouchMini:
         self.timeout = 10
         self.makie = False
 
-        self.running = False
+        self.exit = None
         self.thread = None
+
+        self.set_makie()  ## init()
+
+    def __del__(self):
+        """
+        Delete handler for the automatically closing the serial port.
+        """
+        try:
+            self.set_makie(0)
+            if self._output_device is not None and not self._output_device.closed:
+                self._output_device.close()
+                if self._output_device.closed:
+                    logger.debug(f"__del__: device closed")
+                else:
+                    logger.warning(f"__del__: device not closed")
+                self._output_device = None  # not doing this cause a segmentation fault...
+                # may be issue with garbage collector? reopening closed channel?
+        except:
+            logger.error(f"__del__: exception:", exc_info=1)
 
     def id(self):
         return self.name
@@ -97,7 +118,6 @@ class XTouchMini:
     def set_callback(self, callback: callable):
         self.callback = callback
 
-
     def _read_makie(self, msg: mido.Message) -> None:
         # ** MAKIE VERSION **
         # logger.debug(f"_read_makie: {msg}")
@@ -118,7 +138,6 @@ class XTouchMini:
             payload["deck"] = self
             self.callback(**payload)
 
-
     def _read(self, msg: mido.Message) -> None:
         # ** STANDARD VERSION **
         #logger.debug(f"_read: {msg}")
@@ -137,12 +156,10 @@ class XTouchMini:
             payload["deck"] = self
             self.callback(**payload)
 
-
     def _write(self, message: mido.Message) -> None:
         if self._output_device is not None:
             logger.debug(f"_write: sending '{str(message)}'")
             self._output_device.send(message)
-
 
     def send(self, message: mido.Message):
         self._write(message)
@@ -153,22 +170,7 @@ class XTouchMini:
         m = mido.Message(type="control_change", control=127, value=on)
         self.send(m)
         self.makie = on != 0
-
-    def start(self) -> None:
-        if not self.running:
-            logger.debug(f"start: starting {self.name}..")
-
-            self.set_makie()
-            time.sleep(1)
-            logger.debug(f"start: ..makie set")
-
-            self.running = True
-            self.thread = threading.Thread(target=self.loop)
-            self.thread.name = "XTouchMini::loop"
-            self.thread.start()
-            logger.debug(f"start: ..started")
-        else:
-            logger.debug(f"start: already running")
+        time.sleep(0.5)
 
     def loop(self) -> None:
         m = None
@@ -176,44 +178,43 @@ class XTouchMini:
             logger.debug(f'start: opening MIDI device: "{self.name}"..')
             m = mido.open_input(self.name, callback=self._read_makie if self.makie else self._read)
             logger.debug('start: ..device opened')
-            while self.running:
-                time.sleep(self.timeout)
+            while not self.exit.is_set():
+                self.exit.wait(self.timeout)
         except Exception as e:
-            if m is not None and not m.closed:
-                m.close()
             logger.error(f"loop: exception:", exc_info=1)
         except KeyboardInterrupt:
-            if m is not None and not m.closed:
-                m.close()
-                logger.debug(f'loop: closed MIDI device: "{self.name}"')
             logger.debug(f'loop: KeyboardInterrupt: "{self.name}"')
-        logger.error(f"loop: {self.name}: exited")
+        if m is not None and not m.closed:
+            m.close()
+            if m.closed:
+                logger.debug(f"loop: ..device closed..")
+            m = None
+        logger.debug(f"loop: {self.name}: ..exited")
+
+    def start(self) -> None:
+        if self.exit is None:
+            self.exit = threading.Event()
+            logger.debug(f"start: starting {self.name}..")
+            self.thread = threading.Thread(target=self.loop)
+            self.thread.name = "XTouchMini::loop"
+            self.thread.start()
+            logger.debug(f"start: ..started")
+        else:
+            logger.debug(f"start: already running")
 
     def stop(self) -> None:
-        if self.running:
-            logger.debug(f"stop: stopping {self.name} (wait can last up to {2 * self.timeout}s)..")
-            self.running = False
-            self.thread.join(2 * self.timeout)
+        if self.exit is not None:
+            logger.debug(f"stop: stopping {self.name} (wait can last up to {self.timeout}s)..")
+            self.exit.set()
+            self.thread.join(self.timeout)
             if self.thread.is_alive():
                 logger.warning(f"stop: did not stop cleanly")
             self.thread = None
+            self.exit = None
 
-            self.set_makie(0)
-            logger.debug(f"stop: ..makie unset")
-
-
-            if self._output_device is not None and not self._output_device.closed:
-                self._output_device.close()
-                if self._output_device.closed:
-                    logger.debug(f"stop: ..device closed..")
-                else:
-                    logger.warning(f"stop: ..device not closed..")
-                self._output_device = None  # not doing this cause a segmentation fault...
-                # may be issue with garbage collector? reopening closed channel?
             logger.debug(f"stop: ..stopped")
         else:
             logger.debug(f"stop: not running")
-
 
     # ##########################################
     # User Interface
@@ -254,7 +255,9 @@ class XTouchMini:
         m = mido.Message(type="control_change", control=48+key, value=(mode.value * 16)+value)
         self.send(m)
 
-
+    # ##########################################
+    # Testing most functions
+    #
     def test(self):
         m = mido.Message(type="control_change", control=127, value=1)
         self.send(m)
