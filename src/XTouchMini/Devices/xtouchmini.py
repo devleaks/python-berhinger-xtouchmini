@@ -201,8 +201,15 @@ class XTouchMini:
             self.set_makie(0)
             logger.debug(f"stop: ..makie unset")
 
+
             if self._output_device is not None and not self._output_device.closed:
                 self._output_device.close()
+                if self._output_device.closed:
+                    logger.debug(f"stop: ..device closed..")
+                else:
+                    logger.warning(f"stop: ..device not closed..")
+                self._output_device = None  # not doing this cause a segmentation fault...
+                # may be issue with garbage collector? reopening closed channel?
             logger.debug(f"stop: ..stopped")
         else:
             logger.debug(f"stop: not running")
