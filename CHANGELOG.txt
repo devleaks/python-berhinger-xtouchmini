@@ -1,7 +1,7 @@
 CHANGELOG
 
-
-1.1.0: Moved device close() into __del__() (since open() occurs in __init__())
-       Changed loop to Event.wait() rather than sleep()
-1.0.1: Corrected issue when closing channel
-1.0.0: Initial release
+  - 1.2.0: Adjusted setup to require mido and python-rtmidi
+  - 1.1.0: Moved device close() into __del__() (since open() occurs in __init__())
+           Changed loop to Event.wait() rather than sleep()
+  - 1.0.1: Corrected issue when closing channel
+  - 1.0.0: Initial release

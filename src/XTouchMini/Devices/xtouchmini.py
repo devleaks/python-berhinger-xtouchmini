@@ -66,7 +66,7 @@ class XTouchMini:
         Delete handler for the automatically closing the serial port.
         """
         try:
-            self.set_makie(0)
+            self.set_makie(on=0)
             if self._output_device is not None and not self._output_device.closed:
                 self._output_device.close()
                 if self._output_device.closed:
@@ -166,11 +166,14 @@ class XTouchMini:
         # logger.debug(f"send: sent: {message}")
 
     def set_makie(self, on:int = 1):
-        logger.debug(f"start: setting Makie mode {on}..")
-        m = mido.Message(type="control_change", control=127, value=on)
-        self.send(m)
-        self.makie = on != 0
-        time.sleep(0.5)
+        if self.makie != (on != 0):
+            logger.debug(f"set_makie: setting Makie mode {on}")
+            m = mido.Message(type="control_change", control=127, value=int(on))
+            self.send(m)
+            self.makie = on != 0
+            time.sleep(0.5)
+        else:
+            logger.debug(f"set_makie: Makie already in requested mode")
 
     def loop(self) -> None:
         m = None
@@ -294,6 +297,6 @@ class XTouchMini:
         time.sleep(n)
         self.reset()
 
-        self.set_makie(0)
+        self.set_makie(on=0)
 
         logger.debug(f"test: ..done")
