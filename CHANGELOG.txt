@@ -1,5 +1,6 @@
 CHANGELOG
 
+  - 1.3.1: set makie provoke issue in mido.Message construction.
   - 1.3.0: Reverted makie mode settings (error in python-rtmidi)
   - 1.2.0: Adjusted setup to require mido and python-rtmidi
   - 1.1.0: Moved device close() into __del__() (since open() occurs in __init__())
