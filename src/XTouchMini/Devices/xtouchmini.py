@@ -66,7 +66,7 @@ class XTouchMini:
         Delete handler for the automatically closing the serial port.
         """
         try:
-            self.set_makie(on=0)
+            self.set_makie(0)
             if self._output_device is not None and not self._output_device.closed:
                 self._output_device.close()
                 if self._output_device.closed:
@@ -166,22 +166,19 @@ class XTouchMini:
         # logger.debug(f"send: sent: {message}")
 
     def set_makie(self, on:int = 1):
-        if self.makie != (on != 0):
-            logger.debug(f"set_makie: setting Makie mode {on}")
-            m = mido.Message(type="control_change", control=127, value=int(on))
-            self.send(m)
-            self.makie = on != 0
-            time.sleep(0.5)
-        else:
-            logger.debug(f"set_makie: Makie already in requested mode")
+        logger.debug(f"set_makie: setting Makie mode {on}..")
+        m = mido.Message(type="control_change", control=127, value=on)
+        self.send(m)
+        self.makie = (on != 0)
+#        time.sleep(0.5)
 
     def loop(self) -> None:
         m = None
         try:
-            logger.debug(f'start: opening MIDI device: "{self.name}"..')
+            logger.debug(f'loop: opening MIDI device: "{self.name}"..')
             m = mido.open_input(self.name, callback=self._read_makie if self.makie else self._read)
-            logger.debug('start: ..device opened')
-            while not self.exit.is_set():
+            logger.debug('loop: ..device opened')
+            while self.exit is not None and not self.exit.is_set():
                 self.exit.wait(self.timeout)
         except Exception as e:
             logger.error(f"loop: exception:", exc_info=1)
@@ -297,6 +294,6 @@ class XTouchMini:
         time.sleep(n)
         self.reset()
 
-        self.set_makie(on=0)
+        self.set_makie(0)
 
         logger.debug(f"test: ..done")
