@@ -44,6 +44,8 @@ MAKIE_MAPPING = {
 
 class XTouchMini:
 
+    DECK_TYPE = "xtouchmini" # "Behringer XTouchMini"
+
     def __init__(self, input_device_name: str, output_device_name: str):
         self.name = input_device_name   # label
         self.input_device_name = input_device_name
@@ -82,7 +84,7 @@ class XTouchMini:
         return self.name
 
     def deck_type(self):
-        return "xtouchmini"
+        return self.DECK_TYPE
 
     def open(self):
         pass
