@@ -5,6 +5,7 @@ import logging
 import threading
 import random
 import mido
+from typing import Dict, Callable
 from enum import Enum
 
 logger = logging.getLogger("XTouchMini")
@@ -20,8 +21,9 @@ class LED_MODE(Enum):
     FAN = 2
     SPREAD = 3
 
+
 # Maps user friendly number 0-15 to MAKIE index number
-MAKIE_MAPPING = {
+MAKIE_MAPPING: Dict[int | str, int] = {
     0: 89,
     1: 90,
     2: 40,
@@ -32,34 +34,34 @@ MAKIE_MAPPING = {
     7: 45,
     8: 87,
     9: 88,
-   10: 91,
-   11: 92,
-   12: 86,
-   13: 93,
-   14: 94,
-   15: 95,
-  "A": 84,
-  "B": 85
+    10: 91,
+    11: 92,
+    12: 86,
+    13: 93,
+    14: 94,
+    15: 95,
+    "A": 84,
+    "B": 85,
 }
 
-class XTouchMini:
 
-    DECK_TYPE = "xtouchmini" # "Behringer XTouchMini"
+class XTouchMini:
+    DECK_TYPE = "xtouchmini"  # "Behringer XTouchMini"
 
     def __init__(self, input_device_name: str, output_device_name: str):
-        self.name = input_device_name   # label
+        self.name = input_device_name  # label
         self.input_device_name = input_device_name
         self.output_device_name = output_device_name
 
         self._input_device = None
         self._output_device = mido.open_output(output_device_name)
 
-        self.callback = None
+        self.callback: Callable | None = None
         self.timeout = 10
         self.makie = False
 
-        self.exit = None
-        self.thread = None
+        self.exit: threading.Event | None = None
+        self.thread: threading.Thread | None = None
 
         self.set_makie()  ## init()
 
@@ -94,7 +96,7 @@ class XTouchMini:
 
     def reset(self, silence: bool = True):
         if silence:
-            l= logger.getEffectiveLevel()
+            l = logger.getEffectiveLevel()
             logger.setLevel(logging.WARNING)
         logger.debug(f"reset: reseting..")
         for i in MAKIE_MAPPING.keys():
@@ -117,7 +119,7 @@ class XTouchMini:
             a.append(f"Knob{i}")
         return a
 
-    def set_callback(self, callback: callable):
+    def set_callback(self, callback: Callable):
         self.callback = callback
 
     def _read_makie(self, msg: mido.Message) -> None:
@@ -125,16 +127,16 @@ class XTouchMini:
         # logger.debug(f"_read_makie: {msg}")
         payload = None
         if msg.type == "note_on":
-            payload = { "key": msg.note, "state": 1 if msg.velocity == 127 else 0 }
+            payload = {"key": msg.note, "state": 1 if msg.velocity == 127 else 0}
         elif msg.type == "note_off":
-            payload = { "key": msg.note, "state": 0 }
+            payload = {"key": msg.note, "state": 0}
         elif msg.type == "control_change":
             if msg.control in [9, 10]:  # slider A and B
-                payload = { "key": msg.control, "state": msg.value }
+                payload = {"key": msg.control, "state": msg.value}
             else:
-                payload = { "key": msg.control, "state": 2 if msg.value > 64 else 3 }
+                payload = {"key": msg.control, "state": 2 if msg.value > 64 else 3}
         elif msg.type == "pitchwheel":
-                payload = { "key": msg.channel, "state": msg.pitch }
+            payload = {"key": msg.channel, "state": msg.pitch}
 
         if self.callback is not None and payload is not None:
             payload["deck"] = self
@@ -142,17 +144,17 @@ class XTouchMini:
 
     def _read(self, msg: mido.Message) -> None:
         # ** STANDARD VERSION **
-        #logger.debug(f"_read: {msg}")
+        # logger.debug(f"_read: {msg}")
         payload = None
         if msg.type == "note_on":
-            payload = { "key": msg.note, "state": 1 }
+            payload = {"key": msg.note, "state": 1}
         elif msg.type == "note_off":
-            payload = { "key": msg.note, "state": 0 }
+            payload = {"key": msg.note, "state": 0}
         elif msg.type == "control_change":
             if msg.control in [9, 10]:  # slider A and B
-                payload = { "key": msg.control, "state": msg.value }
+                payload = {"key": msg.control, "state": msg.value}
             else:
-                payload = { "key": msg.control, "state": 2 if msg.value > 64 else 3 }
+                payload = {"key": msg.control, "state": 2 if msg.value > 64 else 3}
 
         if self.callback is not None and payload is not None:
             payload["deck"] = self
@@ -167,16 +169,16 @@ class XTouchMini:
         self._write(message)
         # logger.debug(f"send: sent: {message}")
 
-    def set_makie(self, on:bool = True):
+    def set_makie(self, on: bool = True):
         logger.debug(f"set_makie: setting Makie mode {on}..")
         if self.makie != on:
             try:
                 m = mido.Message(type="control_change", control=127, value=1 if on else 0)
                 self.send(m)
-                self.makie = (on != 0)
+                self.makie = on != 0
             except:
                 logger.debug(f"set_makie: ..error..")
-#        time.sleep(0.5)
+            #        time.sleep(0.5)
             logger.debug(f"set_makie: ..set; status={self.makie}")
         else:
             logger.debug(f"set_makie: ..already {on}; status={self.makie}")
@@ -186,11 +188,11 @@ class XTouchMini:
         try:
             logger.debug(f'loop: opening MIDI device: "{self.name}"..')
             m = mido.open_input(self.name, callback=self._read_makie if self.makie else self._read)
-            logger.debug('loop: ..device opened')
+            logger.debug("loop: ..device opened")
             while self.exit is not None and not self.exit.is_set():
                 self.exit.wait(self.timeout)
         except Exception as e:
-            logger.error(f"loop: exception:", exc_info=1)
+            logger.error(f"loop: exception:", exc_info=True)
         except KeyboardInterrupt:
             logger.debug(f'loop: KeyboardInterrupt: "{self.name}"')
         if m is not None and not m.closed:
@@ -212,7 +214,7 @@ class XTouchMini:
             logger.debug(f"start: already running")
 
     def stop(self) -> None:
-        if self.exit is not None:
+        if self.exit is not None and self.thread is not None:
             logger.debug(f"stop: stopping {self.name} (wait can last up to {self.timeout}s)..")
             self.exit.set()
             self.thread.join(self.timeout)
@@ -231,18 +233,18 @@ class XTouchMini:
     def set_brightness(self, brightness: int):
         pass
 
-    def set_key(self, key: int, on:bool=False, blink:bool=False):
+    def set_key(self, key: int | str, on: bool = False, blink: bool = False):
         # https://stackoverflow.com/questions/39435550/changing-leds-on-x-touch-mini-mackie-control-mc-mode
         # To blink, key must be on=True and blink=True
-        if key not in MAKIE_MAPPING.keys():
+        if key not in MAKIE_MAPPING:
             logger.warning(f"set_key: invalid key {key}")
             return
-        velocity = 0
+        velocity: int = 0
         if on:
             velocity = 127
             if blink:
                 velocity = 1
-        m = mido.Message(type="note_on", note=MAKIE_MAPPING[key], velocity=velocity)
+        m = mido.Message(type="note_on", note=MAKIE_MAPPING.get(key), velocity=velocity)
         self.send(m)
 
     # #: Modes : There are 11 LEDs: 0-4, middle=5, 6-10
@@ -251,7 +253,7 @@ class XTouchMini:
     # 2: Trim  : 11111111000
     # 3: Spread: 00111111100
     #
-    def set_control(self, key: int, value:int, mode: LED_MODE = LED_MODE.SINGLE):
+    def set_control(self, key: int, value: int, mode: LED_MODE = LED_MODE.SINGLE):
         if key < 0 or key > 7:
             logger.warning(f"set_control: invalid key {key}")
             return
@@ -261,7 +263,7 @@ class XTouchMini:
         elif value > 11:
             logger.warning(f"set_control: invalid value {value}, setting max")
             value = 11
-        m = mido.Message(type="control_change", control=48+key, value=(mode.value * 16)+value)
+        m = mido.Message(type="control_change", control=48 + key, value=(mode.value * 16) + value)
         self.send(m)
 
     # ##########################################
@@ -288,10 +290,10 @@ class XTouchMini:
             self.set_control(1, value=j, mode=LED_MODE.TRIM)
             self.set_control(2, value=j, mode=LED_MODE.FAN)
             self.set_control(3, value=j, mode=LED_MODE.SPREAD)
-            self.set_control(4+0, value=j, mode=LED_MODE.SINGLE)
-            self.set_control(4+1, value=j, mode=LED_MODE.TRIM)
-            self.set_control(4+2, value=j, mode=LED_MODE.FAN)
-            self.set_control(4+3, value=j, mode=LED_MODE.SPREAD)
+            self.set_control(4 + 0, value=j, mode=LED_MODE.SINGLE)
+            self.set_control(4 + 1, value=j, mode=LED_MODE.TRIM)
+            self.set_control(4 + 2, value=j, mode=LED_MODE.FAN)
+            self.set_control(4 + 3, value=j, mode=LED_MODE.SPREAD)
             time.sleep(0.2)
 
         logger.debug(f"test: ..blink..")

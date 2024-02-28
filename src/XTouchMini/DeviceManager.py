@@ -11,24 +11,22 @@ logger = logging.getLogger("DeviceManager")
 
 
 class DeviceManager:
-
     @staticmethod
-    def list() -> Tuple[str, str]:
-        """ Lists serial port names
+    def list() -> List[Tuple[str, str]]:
+        """Lists serial port names
 
-            :raises EnvironmentError:
-                On unsupported or unknown platforms
-            :returns:
-                A list of the serial ports available on the system
+        :raises EnvironmentError:
+            On unsupported or unknown platforms
+        :returns:
+            A list of the serial ports available on the system
         """
-        names: List[str] = list()
+        names: List[Tuple[str, str]] = list()
 
         for name in mido.get_input_names():
-            names.append(("in",name))
+            names.append(("in", name))
         for name in mido.get_output_names():
-            names.append(("out",name))
+            names.append(("out", name))
         return names
-
 
     def __init__(self):
         pass
