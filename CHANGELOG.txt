@@ -1,5 +1,6 @@
 CHANGELOG
 
+  - 1.3.6: Clean up DECK_TYPE
   - 1.3.5: corrected types for mypy
   - 1.3.4: relaxed conditions on dependencies
   - 1.3.2,3: upgrade rt-midi

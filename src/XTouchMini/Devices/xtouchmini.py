@@ -46,7 +46,7 @@ MAKIE_MAPPING: Dict[int | str, int] = {
 
 
 class XTouchMini:
-    DECK_TYPE = "xtouchmini"  # "Behringer XTouchMini"
+    DECK_TYPE = "X-Touch Mini"  # "Behringer XTouchMini"
 
     def __init__(self, input_device_name: str, output_device_name: str):
         self.name = input_device_name  # label
@@ -77,7 +77,9 @@ class XTouchMini:
                     logger.debug(f"__del__: device closed")
                 else:
                     logger.warning(f"__del__: device not closed")
-                self._output_device = None  # not doing this cause a segmentation fault...
+                self._output_device = (
+                    None  # not doing this cause a segmentation fault...
+                )
                 # may be issue with garbage collector? reopening closed channel?
         except:
             logger.error(f"__del__: exception:", exc_info=1)
@@ -173,7 +175,9 @@ class XTouchMini:
         logger.debug(f"set_makie: setting Makie mode {on}..")
         if self.makie != on:
             try:
-                m = mido.Message(type="control_change", control=127, value=1 if on else 0)
+                m = mido.Message(
+                    type="control_change", control=127, value=1 if on else 0
+                )
                 self.send(m)
                 self.makie = on != 0
             except:
@@ -187,7 +191,9 @@ class XTouchMini:
         m = None
         try:
             logger.debug(f'loop: opening MIDI device: "{self.name}"..')
-            m = mido.open_input(self.name, callback=self._read_makie if self.makie else self._read)
+            m = mido.open_input(
+                self.name, callback=self._read_makie if self.makie else self._read
+            )
             logger.debug("loop: ..device opened")
             while self.exit is not None and not self.exit.is_set():
                 self.exit.wait(self.timeout)
@@ -215,7 +221,9 @@ class XTouchMini:
 
     def stop(self) -> None:
         if self.exit is not None and self.thread is not None:
-            logger.debug(f"stop: stopping {self.name} (wait can last up to {self.timeout}s)..")
+            logger.debug(
+                f"stop: stopping {self.name} (wait can last up to {self.timeout}s).."
+            )
             self.exit.set()
             self.thread.join(self.timeout)
             if self.thread.is_alive():
@@ -263,7 +271,9 @@ class XTouchMini:
         elif value > 11:
             logger.warning(f"set_control: invalid value {value}, setting max")
             value = 11
-        m = mido.Message(type="control_change", control=48 + key, value=(mode.value * 16) + value)
+        m = mido.Message(
+            type="control_change", control=48 + key, value=(mode.value * 16) + value
+        )
         self.send(m)
 
     # ##########################################
