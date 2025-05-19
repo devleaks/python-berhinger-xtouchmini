@@ -1,5 +1,5 @@
 """
-Main Loupedeck and LoupedeckLive classes.
+DeviceManager discover about X-Touch Mini devices
 """
 import logging
 import mido

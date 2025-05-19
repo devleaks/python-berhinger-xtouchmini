@@ -1,0 +1,78 @@
+# ###########################################
+#
+# Build
+#
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "VERSION"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/XTouchMini"]
+
+
+# ###########################################
+#
+# Project
+#
+[project]
+name = "xtouchmini"
+
+authors = [
+  { name="Pierre M.", email="pierre@devleaks.be" }
+]
+
+description = "Python wrapper around Berhinger X-Touch Mini"
+
+readme = "README.md"
+
+license = {file = "LICENSE"}
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+requires-python = ">=3.11"
+
+dependencies = [
+    "mido<1.4",
+    "python-rtmidi<1.6"
+]
+
+dynamic = [
+    "version"
+]
+
+[project.urls]
+Homepage = "https://github.com/devleaks/python-berhinger-xtouchmini"
+Documentation = "https://github.com/devleaks/python-berhinger-xtouchmini"
+Issues = "https://github.com/devleaks/python-berhinger-xtouchmini/issues"
+Source = "https://github.com/devleaks/python-berhinger-xtouchmini"
+
+# ###########################################
+#
+# Edit
+#
+[tool.ruff]
+line-length = 160
+docstring-code-format = true
+select = [
+    "E",
+    "F",
+    "W",
+]
+ignore = []
+
+[tool.black]
+line-length = 160
+
+[tool.flake8]
+max-line-length = 160
+
